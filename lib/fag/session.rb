@@ -44,7 +44,7 @@ class Session < HTTP
 	end
 
 	def flow (id)
-		Flow.from_json(get("/flow/#{id}"), self)
+		Flow.from_json(get("/flows/#{id}"), self)
 	end
 
 	def flows (expression, range = nil)
@@ -59,6 +59,10 @@ class Session < HTTP
 
 	def create_flow (title, tags, content)
 		Flow.from_json(post('/flows', title: title, tags: tags.to_json, content: content, name: user.name), self)
+	end
+
+	def drop (id)
+		Drop.from_json(get("/drops/#{id}"), self)
 	end
 end
 

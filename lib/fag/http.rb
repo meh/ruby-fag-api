@@ -63,7 +63,7 @@ class HTTP
 		if res.code.to_s.start_with? ?2
 			JSON.parse(res.body)
 		else
-			raise APIException.new(method, path, (res.body.empty? ? res.status : res.body rescue nil), res.code)
+			raise APIException.new(method, path, (res.body.empty? ? res.status : res.body rescue nil), res.code.to_i)
 		end
 	end
 

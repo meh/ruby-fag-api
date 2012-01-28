@@ -1,22 +1,320 @@
 #! /usr/bin/env ruby
+# encoding: utf-8
 require 'optparse'
+require 'tempfile'
+require 'colorb'
 require 'ripl'
+require 'yaml'
 require 'fag'
 
 options = {}
 
 OptionParser.new do |o|
-	options[:url] = 'http://localhost:3000'
+	options[:config] = File.expand_path('~/.fagrc')
+	options[:show]   = :home
+
+	o.on '-C', '--config PATH', 'the configuration file to use' do |value|
+		options[:config] = File.expand_path(value)
+	end
 
 	o.on '-U', '--url URL', 'the URL to the zdreN backend' do |value|
 		options[:url] = value
 	end
 
-	o.on '-u', '--user NAME', 'the username to log in with' do |value|
-		options[:user] = value
+	o.on '-n', '--name NAME', 'the username to log in with' do |value|
+		options[:name] = value
 	end
 
 	o.on '-p', '--password PASSWORD', 'the password to log in with' do |value|
 		options[:password] = value
 	end
+
+	o.on '-r', '--register', 'use passed NAME and PASSWORD to signup' do
+		options[:register] = true
+	end
+
+	o.on '-b', '--bare', 'output without giggles' do
+		options[:bare] = true
+	end
+
+	o.on '-s', '--show WHAT', 'select what flows to show' do |value|
+		options[:show] = value
+	end
+
+	o.on '-N', '--new', 'create a new flow' do
+		options[:new] = true
+	end
+
+	o.on '-D', '--new-drop', 'create a new drop' do
+		options[:new_drop] = true
+	end
+
+	o.on '-f', '--for WHAT', 'for what is the drop' do |value|
+		whole, type, id = value.match(/^(.*?):(\d+)$/).to_a
+
+		options[:for]    = type.downcase.to_sym
+		options[:for_id] = id.to_i
+	end
+
+	o.on '-t', '--title TITLE', 'the title' do |value|
+		options[:title] = value
+	end
+
+	o.on '-T', '--tags TAGS', Array, 'the tags to use' do |value|
+		options[:tags] = value
+	end
+
+	o.on '-c', '--content CONTENT', 'the content' do |value|
+		options[:content] = value
+	end
 end.parse!
+
+$config = YAML.parse_file(options[:config]).transform rescue {}
+
+unless options[:name]
+	options[:name] = $config['name']
+end
+
+unless options[:password]
+	options[:password] = $config['password']
+end
+
+unless options[:url]
+	options[:url] = $config['url'] || 'http://fag2.herokuapp.com'
+end
+
+module Kernel
+	def echo (text)
+		text.strip.lines.each {|line|
+			puts line.strip
+		}
+	end
+
+	def info (text)
+		text.strip.lines.each {|line|
+			puts "#{'*'.green.bold} #{line.strip}"
+		}
+	end
+
+	def warn (text)
+		text.strip.lines.each {|line|
+			puts "#{'*'.yellow.bold} #{line.strip}"
+		}
+	end
+
+	def fatal (text)
+		text.strip.lines.each {|line|
+			puts "#{'*'.red} #{line.strip}"
+		}
+	end
+
+	def confirm? (query, default = true)
+		$stdout.print "#{query} [#{default ? 'YES/no' : 'yes/NO'}] "
+
+		case $stdin.gets.strip
+			when /^(true|y(es)?|1)$/i then true
+			when /^(false|no?|0)$/i   then false
+			else                           !!default
+		end
+	end
+
+	def choice (list = nil, query = 'The choice is yours')
+		array = if list.is_a?(Array)
+			list = Hash[list.each_with_index.map {|v, i|
+				[i + 1, v]
+			}]
+
+			true
+		else
+			false
+		end
+
+		if list.is_a?(Hash)
+			list = Hash[list.map {|i, v| [i.to_s, v] }]
+		else
+			return nil
+		end
+
+		max = list.keys.map {|x|
+			x.to_s.size
+		}.max
+
+		$stdout.puts "#{query}:"
+		list.each {|index, value|
+			$stdout.puts "  #{index.rjust(max)}: #{value}"
+		}
+		$stdout.print "Choice: "
+
+		choice = $stdin.gets.strip
+
+		if list.keys.include?(choice)
+			array ? choice.to_i - 1 : choice
+		else
+			nil
+		end
+	end
+
+	def terminal_size
+		Struct.new(:width, :height).new(*`stty size`.split.map(&:to_i).reverse)
+	end
+
+	def no_colors?
+		!!ENV['NO_COLORS']
+	end
+
+	def vertical_separator
+		no_colors? ? '|' : '│'
+	end
+
+	def angle_separator (side, side2)
+		if side == :bottom
+			if side2 == :left
+				no_colors? ? '`' : '└'
+			end
+		end
+	end
+
+	def horizontal_separator
+		no_colors? ? '-' : '─'
+	end
+
+	def horz
+		horizontal_separator.black.bold
+	end
+
+	def vert
+		vertical_separator.black.bold
+	end
+
+	def mid
+		no_colors? ? "'" : '┴'
+	end
+
+	def truncate (string, length)
+		string.sub(/^(.{#{length - 4}})(.*)$/) { $2 ? $1 + '...' : $1 }
+	end
+end
+
+$session = Fag::Session.new(options[:url])
+
+if options[:register]
+	begin
+		$session.signup(options[:name], options[:password])
+
+		info 'registered succesfully'
+	rescue Fag::HTTP::APIException => e
+		if e.code == 302
+			fatal 'username already taken'
+		else
+			fatal 'unknown error occurred'
+		end
+	end
+
+	exit
+end
+
+if options[:password]
+	$session.login(options[:name], options[:password])
+else
+	$session.user.name = options[:name] if options[:name]
+end
+
+if options[:show] == :home
+	options[:show] = $config['home'] || '*'
+end
+
+if !options[:content] && (options[:new] || options[:new_drop])
+	temp = Tempfile.new 'fag'
+	
+	system("$EDITOR #{temp.path}")
+
+	options[:content] = temp.read
+end
+
+if options[:new]
+	begin
+		flow = $session.create_flow(options[:title], options[:tags], options[:content])
+
+		info "flow created successfully with id #{flow.id.to_s.white.bold}"
+	rescue Fag::HTTP::APIException => e
+		fatal 'unknown error occurred'
+	end
+elsif options[:new_drop]
+	if options[:for] == :flow
+		begin
+			flow = $session.flow(options[:for_id])
+			drop = flow.create_drop options[:content], options[:title]
+
+			info "drop created successfully with id #{drop.id.to_s.white.bold}"
+		rescue Fag::HTTP::APIException => e
+			fatal 'unknown error occurred'
+		end
+	end
+elsif options[:show]
+	if matches = options[:show].match(/^(\d+)?(?::(\d+))?$/)
+		begin
+			if matches[1]
+				flow        = $session.flow(matches[1].to_i)
+				left_length = terminal_size.width - (flow.id.to_s.length + 2 + flow.tags.join(', ').length + 2 + flow.author.to_s.length + 2 + 3)
+
+				unless options[:bare]
+					puts " #{flow.id.to_s.white.bold} #{vert} #{flow.tags.map { |t| t.to_s.red }.join ', '} #{vert} #{flow.author.to_s.green} #{vert} #{truncate(flow.title, left_length)}"
+					print horz * (flow.id.to_s.length + 2) + mid.black.bold
+					print horz * (flow.tags.join(', ').length + 2) + mid.black.bold
+					print horz * (flow.author.to_s.length + 2) + mid.black.bold
+					print horz * left_length
+					puts "\n\n"
+				end
+
+				if matches[2]
+					drop = flow.drops[matches[2].to_i - 1]
+
+					unless options[:bare]
+						puts " #{flow.author.to_s.green}#{" #{vert} #{drop.title}" if drop.title}"
+						puts (horz * terminal_size.width).black.bold
+						puts drop.content
+						puts ""
+					else
+						puts drop.content
+					end
+				else
+					flow.drops.each {|drop|
+						puts " #{flow.author.to_s.green}#{" #{vert} #{drop.title}" if drop.title}"
+						puts (horz * terminal_size.width).black.bold
+						puts drop.content
+						puts ""
+					}
+				end
+			else
+				drop = $session.drop(matches[2].to_i)
+
+				unless options[:bare]
+					puts " #{flow.author.to_s.green}#{" #{vert} #{drop.title}" if drop.title}"
+					puts (horz * terminal_size.width).black.bold
+					puts drop.content
+					puts ""
+				else
+					puts drop.content
+				end
+			end
+		rescue Fag::HTTP::APIException => e
+			if e.code == 404
+				fatal 'flow not found'
+			else
+				fatal 'unknown error'
+			end
+		end
+	else
+		flows = $session.flows(options[:show])
+
+		if flows.empty?
+			warn "no flows match #{options[:show].to_s.black.bold}"
+			
+			exit 1
+		end
+
+		flows.each {|flow|
+			puts " #{flow.id.to_s.white.bold} #{vert} #{flow.tags.map { |t| t.to_s.red }.join ', '} #{vert} #{flow.author.to_s.green} #{vert} #{flow.title}"
+		}
+	end
+end
