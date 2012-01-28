@@ -27,6 +27,12 @@ class Session < HTTP
 		yield self if block_given?
 	end
 
+	def signup (username, password)
+		post('/users', name: username, password: password)
+
+		login(username, password)
+	end
+
 	def login (username, password)
 		@user = User.new(post('/auth', id: username, password: password), username, self)
 	rescue
@@ -52,7 +58,7 @@ class Session < HTTP
 	end
 
 	def create_flow (title, tags, content)
-		post '/flow/create', title: title, tags: tags.to_json, content: content, name: user.name
+		Flow.from_json(post('/flows', title: title, tags: tags.to_json, content: content, name: user.name), self)
 	end
 end
 

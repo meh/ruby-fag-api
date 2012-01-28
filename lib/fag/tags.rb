@@ -12,7 +12,11 @@ module Fag
 
 class Tags < Array
 	def self.from_json (data, session = nil)
-		JSON.parse(data)
+		Tags.new.concat(JSON.parse(data))
+	end
+
+	def to_s
+		join ', '
 	end
 end
 

@@ -41,7 +41,7 @@ class User < Author
 
 	def initialize (id, name = nil, session = nil)
 		unless name
-			name = session.get("/user/#{id}")['name']
+			name = session.get("/users/#{id}")['name']
 		end
 
 		super(name, session)
@@ -50,19 +50,19 @@ class User < Author
 	end
 
 	session_define :powers do |s|
-		s.get "/user/#{id}/powers"
+		s.get "/users/#{id}/powers"
 	end
 
 	session_define :can? do |s, what|
-		s.get "/user/#{id}/can/#{what}"
+		s.get "/users/#{id}/can/#{what}"
 	end
 
 	session_define :cannot? do |s, what|
-		s.get "/user/#{id}/cannot/#{what}"
+		s.get "/users/#{id}/cannot/#{what}"
 	end
 
 	session_define :change_password do |s, password|
-		s.post "/user/#{id}/change/password", password: password
+		s.post "/users/#{id}/change/password", password: password
 	end
 end
 

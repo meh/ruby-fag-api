@@ -54,18 +54,17 @@ class HTTP
 
 	def request (method, path, *args)
 		path = "/#{version}/#{path}".gsub(%r(//+), '/') if version
-
-		Net::HTTP.start(@address, @port) {|http|
+		res  = Net::HTTP.start(@address, @port) {|http|
 			http.__send__ method.downcase, path, *args
-		}.tap! {|res|
-			@cookies.set_cookies_from_headers(url, res)
-
-			if res.code.to_s.start_with? ?2
-				JSON.parse(res.body)
-			else
-				raise APIException.new(method, path, res.body.empty? ? res.status : res.body, res.code)
-			end
 		}
+
+		@cookies.set_cookies_from_headers(url, res)
+
+		if res.code.to_s.start_with? ?2
+			JSON.parse(res.body)
+		else
+			raise APIException.new(method, path, (res.body.empty? ? res.status : res.body rescue nil), res.code)
+		end
 	end
 
 	memoize

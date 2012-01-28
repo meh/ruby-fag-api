@@ -31,8 +31,8 @@ class Flow
 		yield self if block_given?
 	end
 
-	session_define :drop do |s, content, title = nil|
-		Drop.from_json(s.post("/flow/#{id}/drop", content: content, title: title, name: s.user.name), s)
+	session_define :create_drop do |s, content, title = nil|
+		Drop.from_json(s.post("/flows/#{id}/drops", content: content, title: title, name: s.user.name), s)
 	end
 
 	%w[title tags author created_at updated_at drops].each {|name|
