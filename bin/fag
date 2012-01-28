@@ -1,0 +1,22 @@
+#! /usr/bin/env ruby
+require 'optparse'
+require 'ripl'
+require 'fag'
+
+options = {}
+
+OptionParser.new do |o|
+	options[:url] = 'http://localhost:3000'
+
+	o.on '-U', '--url URL', 'the URL to the zdreN backend' do |value|
+		options[:url] = value
+	end
+
+	o.on '-u', '--user NAME', 'the username to log in with' do |value|
+		options[:user] = value
+	end
+
+	o.on '-p', '--password PASSWORD', 'the password to log in with' do |value|
+		options[:password] = value
+	end
+end.parse!
