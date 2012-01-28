@@ -223,6 +223,10 @@ if options[:show] == :home
 end
 
 if !options[:content] && (options[:new] || options[:new_drop])
+	unless ENV['EDITOR']
+		fatal 'no editor is set, set the env var EDITOR to your favourite editor'
+	end
+
 	temp = Tempfile.new 'fag'
 	
 	system("$EDITOR #{temp.path}")

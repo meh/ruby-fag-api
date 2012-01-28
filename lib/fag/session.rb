@@ -52,6 +52,8 @@ class Session < HTTP
 			get "/flows?expression=#{CGI.escape(expression)}"
 		elsif range.end == -1
 			get "/flows?expression=#{CGI.escape(expression)}&offset=#{range.begin}"
+		elsif range.begin == -1
+			get "/flows?expression=#{CGI.escape(expression)}&limit=#{range.end}"
 		else
 			get "/flows?expression=#{CGI.escape(expression)}&offset=#{range.begin}&limit=#{range.to_a.length}"
 		end.map { |data| Flow.from_json(data, self) }
