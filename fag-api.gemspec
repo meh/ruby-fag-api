@@ -14,4 +14,5 @@ Gem::Specification.new {|s|
 
 	s.add_dependency 'cookiejar'
 	s.add_dependency 'json'
+	s.add_dependency 'refining'
 }

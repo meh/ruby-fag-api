@@ -3,7 +3,6 @@
 require 'optparse'
 require 'tempfile'
 require 'colorb'
-require 'ripl'
 require 'yaml'
 require 'fag'
 
