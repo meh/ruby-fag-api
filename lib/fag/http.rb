@@ -65,22 +65,17 @@ class HTTP
 	def request (method, path, headers = nil, data = nil)
 		path = "/#{version}/#{path}".gsub(%r(//+), '/') if version
 		res  = Net::HTTP.start(@address, @port) {|http|
-			# FIXME: this shit doesn't work and I don't even know why
 			req = Net::HTTP.const_get(method.capitalize).new(path)
-
-			_prepare_headers(headers).each {|name, value|
-				req[name] = value
-			}
 
 			if req.request_body_permitted?
 				req.set_form_data _prepare_data(data)
 			end
 
-			# this works
-			http.__send__ method.downcase, path, *[data ? URI.encode_www_form(_prepare_data(data)) : nil, _prepare_headers(headers)].compact
+			_prepare_headers(headers).each {|name, value|
+				req[name] = value
+			}
 
-			# this doesn't
-			# http.request(req)
+			http.request(req)
 		}
 
 		@cookies.set_cookies_from_headers(url, res)
