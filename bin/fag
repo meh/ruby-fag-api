@@ -213,7 +213,17 @@ if options[:register]
 end
 
 if options[:password]
-	$session.login(options[:name], options[:password])
+	begin
+		$session.login(options[:name], options[:password])
+	rescue Fag::HTTP::APIException => e
+		if e.code == 403
+			fatal 'username or password are wrong'
+		else
+			fatal 'could not login'
+		end
+
+		exit 23
+	end
 else
 	$session.user.name = options[:name] if options[:name]
 end

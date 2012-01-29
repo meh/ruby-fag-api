@@ -34,7 +34,7 @@ class Session < HTTP
 	end
 
 	def login (username, password)
-		@user = User.new(post('/auth', id: username, password: password), username, self)
+		@user = User.new(post('/auth', name: username, password: password), username, self)
 	rescue
 		false
 	end

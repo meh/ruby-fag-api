@@ -15,18 +15,28 @@ module Fag
 
 class HTTP
 	class APIException < Exception
-		attr_reader :method, :url, :code
+		attr_reader :method, :path
 
-		def initialize (method, url, message, code)
-			super(message)
+		def initialize (method, path, response)
+			@method   = method
+			@path     = path
+			@response = response
 
-			@method = method
-			@url    = url
-			@code   = code
+			super("#{method.upcase} #{path}: #{code} #{body}")
 		end
 
-		def to_s
-			"#{@method.upcase} #{@url}: #{super}"
+		def code
+			@response.code.to_i
+		end
+
+		def body
+			result = @response.body.empty? ? @response.message : @response.body
+
+			if result.start_with? code.to_s
+				result.sub!(/^(\d+)\s*/, '')
+			end
+
+			result
 		end
 	end
 
@@ -52,18 +62,31 @@ class HTTP
 		what ? @version = what : @version
 	end
 
-	def request (method, path, *args)
+	def request (method, path, headers = {}, data = nil)
 		path = "/#{version}/#{path}".gsub(%r(//+), '/') if version
 		res  = Net::HTTP.start(@address, @port) {|http|
-			http.__send__ method.downcase, path, *args
+			req = Net::HTTP.const_get(method.capitalize).new(path)
+
+			_prepare_headers(headers).each {|name, value|
+				req[name] = value
+			}
+
+			if data
+				req.set_form_data _prepare_data(data)
+			end
+
+			http.request(req)
+
+			# this works
+			# http.__send__ method.downcase, path, *[data ? URI.encode_www_form(_prepare_data(data)) : nil, _prepare_headers(headers)].compact
 		}
 
 		@cookies.set_cookies_from_headers(url, res)
 
-		if res.code.to_s.start_with? ?2
+		if res.code.start_with? ?2
 			JSON.parse(res.body)
 		else
-			raise APIException.new(method, path, (res.body.empty? ? res.status : res.body rescue nil), res.code.to_i)
+			raise APIException.new(method, path, res)
 		end
 	end
 
@@ -73,24 +96,19 @@ class HTTP
 	end
 
 	def get (path, headers = {})
-		request :GET, path, prepare_headers(headers)
+		request :GET, path, headers
 	end
 
 	def post (path, data, headers = {})
-		request :POST, path, prepare_data(data), prepare_headers(headers)
+		request :POST, path, headers, data
 	end
 
-	private
-
-	def prepare_data (data)
-		(data.is_a?(Hash) ? URI.encode_www_form(data) : data.to_s) << "&_csrf=#{URI.encode_www_form_component(csrf)}"
+	def put (path, data, headers = {})
+		request :PUT, path, headers, data
 	end
 
-	def prepare_headers (headers = {})
-		headers.merge(
-			'User-Agent' => "ruby-fag-api/#{Fag::VERSION}",
-			'Cookie'     => @cookies.get_cookie_header(url)
-		)
+	def delete (path, headers = {})
+		request :DELETE, path, headers
 	end
 
 	def csrf (renew = false)
@@ -99,6 +117,20 @@ class HTTP
 		else
 			@csrf = get '/csrf/renew'
 		end
+	end
+
+private
+	def _prepare_data (data)
+		data.merge(
+			'_csrf' => csrf
+		)
+	end
+
+	def _prepare_headers (headers)
+		headers.merge(
+			'User-Agent' => "ruby-fag-api/#{Fag::VERSION}",
+			'Cookie'     => @cookies.get_cookie_header(url)
+		)
 	end
 end
 
