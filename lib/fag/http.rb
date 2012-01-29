@@ -62,28 +62,30 @@ class HTTP
 		what ? @version = what : @version
 	end
 
-	def request (method, path, headers = {}, data = nil)
+	def request (method, path, headers = nil, data = nil)
 		path = "/#{version}/#{path}".gsub(%r(//+), '/') if version
 		res  = Net::HTTP.start(@address, @port) {|http|
+			# FIXME: this shit doesn't work and I don't even know why
 			req = Net::HTTP.const_get(method.capitalize).new(path)
 
 			_prepare_headers(headers).each {|name, value|
 				req[name] = value
 			}
 
-			if data
+			if req.request_body_permitted?
 				req.set_form_data _prepare_data(data)
 			end
 
-			http.request(req)
-
 			# this works
-			# http.__send__ method.downcase, path, *[data ? URI.encode_www_form(_prepare_data(data)) : nil, _prepare_headers(headers)].compact
+			http.__send__ method.downcase, path, *[data ? URI.encode_www_form(_prepare_data(data)) : nil, _prepare_headers(headers)].compact
+
+			# this doesn't
+			# http.request(req)
 		}
 
 		@cookies.set_cookies_from_headers(url, res)
 
-		if res.code.start_with? ?2
+		if res.is_a? Net::HTTPSuccess
 			JSON.parse(res.body)
 		else
 			raise APIException.new(method, path, res)
@@ -95,19 +97,19 @@ class HTTP
 		"http#{?s if @ssl}://#{@address}#{":#{@port}" if (!@ssl and @port != 80) or (@ssl and @port != 443)}/"
 	end
 
-	def get (path, headers = {})
+	def get (path, headers = nil)
 		request :GET, path, headers
 	end
 
-	def post (path, data, headers = {})
+	def post (path, data, headers = nil)
 		request :POST, path, headers, data
 	end
 
-	def put (path, data, headers = {})
+	def put (path, data, headers = nil)
 		request :PUT, path, headers, data
 	end
 
-	def delete (path, headers = {})
+	def delete (path, headers = nil)
 		request :DELETE, path, headers
 	end
 
@@ -121,15 +123,16 @@ class HTTP
 
 private
 	def _prepare_data (data)
-		data.merge(
-			'_csrf' => csrf
+		(data || {}).merge(
+			_csrf: csrf
 		)
 	end
 
 	def _prepare_headers (headers)
-		headers.merge(
+		(headers || {}).merge(
 			'User-Agent' => "ruby-fag-api/#{Fag::VERSION}",
-			'Cookie'     => @cookies.get_cookie_header(url)
+			'Cookie'     => @cookies.get_cookie_header(url),
+			'Connection' => 'close'
 		)
 	end
 end
