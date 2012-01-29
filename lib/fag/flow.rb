@@ -31,6 +31,24 @@ class Flow
 		yield self if block_given?
 	end
 
+	session_define :destroy do |s|
+		s.delete "/flows/#{id}"
+	end
+
+	session_define :update do |s, data|
+		if data[:author].is_a?(Anonymous)
+			data[:author_name] = data[:author].name
+		else
+			data[:author_id] = data[:author].is_a?(Integer) ? data[:author] : data[:author].id
+		end
+
+		if data[:tags]
+			data[:tags] = JSON.dump(data[:tags])
+		end
+
+		s.put "/flows/#{id}", data
+	end
+
 	session_define :create_drop do |s, content, title = nil|
 		Drop.from_json(s.post("/flows/#{id}/drops", content: content, title: title, name: s.user.name), s)
 	end

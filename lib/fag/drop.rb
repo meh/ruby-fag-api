@@ -16,6 +16,7 @@ class Drop
 	end
 
 	include Fetchable
+	include Sessioned
 
 	attr_reader :id
 
@@ -25,6 +26,20 @@ class Drop
 		@session = session
 
 		yield self if block_given?
+	end
+
+	session_define :destroy do |s|
+		s.delete "/drops/#{id}"
+	end
+
+	session_define :update do |s, data|
+		if data[:author].is_a?(Anonymous)
+			data[:author_name] = data[:author].name
+		else
+			data[:author_id] = data[:author].is_a?(Integer) ? data[:author] : data[:author].id
+		end
+
+		s.put "/drops/#{id}", data
 	end
 
 	%w[title author content created_at updated_at].each {|name|

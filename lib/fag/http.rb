@@ -67,7 +67,7 @@ class HTTP
 		res  = Net::HTTP.start(@address, @port) {|http|
 			req = Net::HTTP.const_get(method.capitalize).new(path)
 
-			if req.request_body_permitted?
+			if %w[POST PUT DELETE].member? method.to_s
 				req.set_form_data _prepare_data(data)
 			end
 
