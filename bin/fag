@@ -88,37 +88,37 @@ end
 module Kernel
 	def echo (text)
 		text.strip.lines.each {|line|
-			puts line.strip
+			$stdout.puts line.strip
 		}
 	end
 
 	def info (text)
 		text.strip.lines.each {|line|
-			puts "#{'*'.green.bold} #{line.strip}"
+			$stdout.puts "#{'*'.green.bold} #{line.strip}"
 		}
 	end
 
 	def warn (text)
 		text.strip.lines.each {|line|
-			puts "#{'*'.yellow.bold} #{line.strip}"
+			$stdout.puts "#{'*'.yellow.bold} #{line.strip}"
 		}
 	end
 
 	def fatal (text)
 		text.strip.lines.each {|line|
-			puts "#{'*'.red} #{line.strip}"
+			$stdout.puts "#{'*'.red} #{line.strip}"
 		}
 	end
 
 	def added (text)
 		text.strip.lines.each {|line|
-			puts "#{'+'.green} #{line.strip}"
+			$stdout.puts "#{'+'.green} #{line.strip}"
 		}
 	end
 
 	def deleted (text)
 		text.strip.lines.each {|line|
-			puts "#{'-'.red} #{line.strip}"
+			$stdout.puts "#{'-'.red} #{line.strip}"
 		}
 	end
 
@@ -364,7 +364,7 @@ elsif options[:show]
 		flows = $session.flows(options[:show])
 
 		if flows.empty?
-			warn "no flows match #{options[:show].to_s.black.bold}"
+			warn "no flows match #{options[:show].to_s.white.bold}"
 			
 			exit 1
 		end
