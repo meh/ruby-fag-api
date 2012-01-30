@@ -18,7 +18,8 @@ class Drop
 	include Fetchable
 	include Sessioned
 
-	attr_reader :id
+	attr_reader   :id
+	attr_accessor :relative_id
 
 	def initialize (id, session = nil)
 		@id = id

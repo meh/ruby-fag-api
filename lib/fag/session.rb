@@ -27,6 +27,14 @@ class Session < HTTP
 		yield self if block_given?
 	end
 
+	def up?
+		csrf true
+
+		true
+	rescue Errno::ECONNREFUSED
+		false
+	end
+
 	def signup (username, password)
 		post('/users', name: username, password: password)
 

@@ -3,6 +3,7 @@
 require 'optparse'
 require 'tempfile'
 require 'colorb'
+require 'stty'
 require 'yaml'
 require 'fag'
 
@@ -86,6 +87,8 @@ unless options[:url]
 end
 
 module Kernel
+	STDIN.extend(STTY)
+
 	def echo (text)
 		text.strip.lines.each {|line|
 			$stdout.puts line.strip
@@ -168,10 +171,6 @@ module Kernel
 		end
 	end
 
-	def terminal_size
-		Struct.new(:width, :height).new(*`stty size`.split.map(&:to_i).reverse)
-	end
-
 	def no_colors?
 		!!ENV['NO_COLORS']
 	end
@@ -201,15 +200,58 @@ module Kernel
 	end
 
 	def mid
-		no_colors? ? "'" : '┴'
+		(no_colors? ? "'" : '┴').black.bold
 	end
 
 	def truncate (string, length)
 		string.sub(/^(.{#{length - 4}})(.*)$/) { $2 ? $1 + '...' : $1 }
 	end
+
+	def print_flow (flow, bare = false)
+		left_length = STDIN.cols - (flow.id.to_s.length + 2 + flow.tags.join(', ').length + 2 + flow.author.to_s.length + 2 + 3)
+
+		unless bare
+			puts " #{flow.id.to_s.white.bold} #{vert} #{flow.tags.map { |t| t.to_s.red }.join ', '} #{vert} #{flow.author.to_s.blue} #{vert} #{truncate(flow.title, left_length)}"
+			print horz * (flow.id.to_s.length + 2) + mid
+			print horz * (flow.tags.join(', ').length + 2) + mid
+			print horz * (flow.author.to_s.length + 2) + mid
+			print horz * left_length
+			puts "\n\n"
+		end
+	end
+
+	def print_drop (drop, bare = false)
+		unless bare
+			if drop.relative_id
+				left_length = STDIN.cols - (1 + drop.author.to_s.length + (drop.title ? 3 + drop.title.length : 0))
+
+				print " #{drop.author.to_s.blue}#{" #{vert} #{drop.title}" if drop.title}"
+				print " " * (left_length - drop.relative_id.to_s.length - 3)
+				puts "#{vert} #{drop.relative_id.to_s.white.bold} "
+
+				print (horz * (STDIN.cols - drop.relative_id.to_s.length - 3)).black.bold
+				print mid
+				puts horz * (drop.relative_id.to_s.length + 2)
+
+			else
+				puts " #{drop.author.to_s.blue}#{" #{vert} #{drop.title}" if drop.title}"
+				puts (horz * STDIN.cols).black.bold
+			end
+
+			puts drop.content.gsub(/^>.*$/) { |rep| rep.green }
+			puts ""
+		else
+			puts drop.content
+		end
+	end
 end
 
 $session = Fag::Session.new(options[:url])
+
+unless $session.up?
+	fatal "#{$session.url} seems to be down"
+	exit 99
+end
 
 if options[:register]
 	begin
@@ -311,47 +353,20 @@ elsif options[:show]
 		begin
 			if matches[1]
 				flow        = $session.flow(matches[1].to_i)
-				left_length = terminal_size.width - (flow.id.to_s.length + 2 + flow.tags.join(', ').length + 2 + flow.author.to_s.length + 2 + 3)
 
 				unless options[:bare]
-					puts " #{flow.id.to_s.white.bold} #{vert} #{flow.tags.map { |t| t.to_s.red }.join ', '} #{vert} #{flow.author.to_s.green} #{vert} #{truncate(flow.title, left_length)}"
-					print horz * (flow.id.to_s.length + 2) + mid.black.bold
-					print horz * (flow.tags.join(', ').length + 2) + mid.black.bold
-					print horz * (flow.author.to_s.length + 2) + mid.black.bold
-					print horz * left_length
-					puts "\n\n"
+					print_flow(flow)
 				end
 
 				if matches[2]
-					drop = flow.drops[matches[2].to_i - 1]
-
-					unless options[:bare]
-						puts " #{flow.author.to_s.green}#{" #{vert} #{drop.title}" if drop.title}"
-						puts (horz * terminal_size.width).black.bold
-						puts drop.content
-						puts ""
-					else
-						puts drop.content
-					end
+					print_drop(flow.drops[matches[2].to_i - 1], options[:bare])
 				else
 					flow.drops.each {|drop|
-						puts " #{flow.author.to_s.green}#{" #{vert} #{drop.title}" if drop.title}"
-						puts (horz * terminal_size.width).black.bold
-						puts drop.content
-						puts ""
+						print_drop(drop, options[:bare])
 					}
 				end
 			else
-				drop = $session.drop(matches[2].to_i)
-
-				unless options[:bare]
-					puts " #{flow.author.to_s.green}#{" #{vert} #{drop.title}" if drop.title}"
-					puts (horz * terminal_size.width).black.bold
-					puts drop.content
-					puts ""
-				else
-					puts drop.content
-				end
+				print_drop($session.drop(matches[2].to_i), options[:bare])
 			end
 		rescue Fag::HTTP::APIException => e
 			if e.code == 404
@@ -370,7 +385,7 @@ elsif options[:show]
 		end
 
 		flows.each {|flow|
-			puts " #{flow.id.to_s.white.bold} #{vert} #{flow.tags.map { |t| t.to_s.red }.join ', '} #{vert} #{flow.author.to_s.green} #{vert} #{flow.title}"
+			puts " #{flow.id.to_s.white.bold} #{vert} #{flow.tags.map { |t| t.to_s.red }.join ', '} #{vert} #{flow.author.to_s.blue} #{vert} #{flow.title}"
 		}
 	end
 end

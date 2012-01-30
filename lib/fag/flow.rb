@@ -65,7 +65,11 @@ class Flow
 			@tags   = Tags.from_json(o['tags'], @session)
 			@author = Author.from_json(o['author'], @session)
 
-			@drops = o['drops'].map { |d| Drop.from_json(d, @session) }
+			@drops = o['drops'].map.each_with_index {|data, index|
+				Drop.from_json(data, @session).tap {|drop|
+					drop.relative_id = index + 1
+				}
+			}
 
 			@created_at = DateTime.parse(o['created_at'])
 			@updated_at = DateTime.parse(o['updated_at'])
