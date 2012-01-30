@@ -110,6 +110,18 @@ module Kernel
 		}
 	end
 
+	def added (text)
+		text.strip.lines.each {|line|
+			puts "#{'+'.green} #{line.strip}"
+		}
+	end
+
+	def deleted (text)
+		text.strip.lines.each {|line|
+			puts "#{'-'.red} #{line.strip}"
+		}
+	end
+
 	def confirm? (query, default = true)
 		$stdout.print "#{??.white.bold} #{query} [#{default ? 'YES/no' : 'yes/NO'}] "
 
@@ -253,7 +265,7 @@ if options[:new]
 			flow = $session.flow(options[:for_id])
 			drop = flow.create_drop options[:content], options[:title]
 
-			info "drop created successfully with id #{drop.id.to_s.white.bold}"
+			added "drop #{drop.id.to_s.white.bold}"
 		rescue Fag::HTTP::APIException => e
 			fatal 'unknown error occurred'
 		end
@@ -261,7 +273,7 @@ if options[:new]
 		begin
 			flow = $session.create_flow(options[:title], options[:tags], options[:content])
 
-			info "flow created successfully with id #{flow.id.to_s.white.bold}"
+			added "flow #{flow.id.to_s.white.bold}"
 		rescue Fag::HTTP::APIException => e
 			fatal 'unknown error occurred'
 		end
@@ -270,8 +282,9 @@ elsif options[:delete]
 	if options[:delete] == :drop
 		begin
 			drop = $session.drop(options[:delete_id]).destroy
+			id   = drop.id
 
-			info "drop deleted succesfully"
+			deleted "drop #{id.to_s.white.bold}"
 		rescue Fag::HTTP::APIException => e
 			fatal 'unknown error occurred'
 		end
@@ -280,9 +293,10 @@ elsif options[:delete]
 			flow = $session.flow(options[:delete_id])
 
 			if confirm? "delete flow #{flow.id} titled `#{flow.title}` with tags `#{flow.tags.join ', '}` by #{flow.author}"
+				id = flow.id
 				flow.destroy
 
-				info "flow deleted succesfully"
+				deleted "flow #{id.to_s.white.bold}"
 			end
 		rescue Fag::HTTP::APIException => e
 			if e.code == 404
