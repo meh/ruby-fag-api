@@ -14,13 +14,14 @@ OptionParser.new do |o|
 	$options[:show]   = :home
 
 	$options[:colors] = {
-		separator: 'black.bold',
-		name:      'blue',
-		tag:       'red',
-		id:        'white.bold',
-		text:      '',
-		title:     '',
-		quote:     'green'
+		separator:    'black.bold',
+		registered:   'blue.bold',
+		unregistered: 'blue',
+		tag:          'red',
+		id:           'white.bold',
+		text:         '',
+		title:        '',
+		quote:        'green'
 	}
 
 	o.on '-C', '--config PATH', 'the configuration file to use' do |value|
@@ -41,6 +42,10 @@ OptionParser.new do |o|
 
 	o.on '-r', '--register', 'use passed NAME and PASSWORD to signup' do
 		$options[:register] = true
+	end
+
+	o.on '-a', '--anonymous', 'force anonymous name even if password is given' do
+		$options[:anonymous] = true
 	end
 
 	o.on '-b', '--bare', 'output without giggles' do
@@ -94,6 +99,10 @@ end
 
 unless $options[:url]
 	$options[:url] = $config['url'] || 'http://fag2.herokuapp.com'
+end
+
+if $options[:anonymous]
+	$options[:password] = false
 end
 
 if $config['colors']
@@ -203,6 +212,10 @@ module Kernel
 		result
 	end
 
+	def color_author (author)
+		color(author,author.is_a?(Fag::User) ? :registered : :unregistered)
+	end
+
 	def vertical_separator
 		no_colors? ? '|' : '│'
 	end
@@ -245,7 +258,7 @@ module Kernel
 		left_length = STDIN.cols - (flow.id.to_s.length + 2 + flow.tags.join(', ').length + 2 + flow.author.to_s.length + 2 + 3)
 
 		unless bare
-			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color(flow.author, :name)} #{vert} #{color(truncate(flow.title, left_length), :title)}"
+			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(truncate(flow.title, left_length), :title)}"
 			print horz * (flow.id.to_s.length + 2) + mid
 			print horz * (flow.tags.join(', ').length + 2) + mid
 			print horz * (flow.author.to_s.length + 2) + mid
@@ -259,7 +272,7 @@ module Kernel
 			if drop.relative_id
 				left_length = STDIN.cols - (1 + drop.author.to_s.length + (drop.title ? 3 + drop.title.length : 0))
 
-				print " #{color(drop.author, :name)}#{" #{vert} #{color(drop.title, :title)}" if drop.title}"
+				print " #{color_author(drop.author)}#{" #{vert} #{color(drop.title, :title)}" if drop.title}"
 				print " " * (left_length - drop.relative_id.to_s.length - 3)
 				puts "#{vert} #{color(drop.relative_id, :id)} "
 
@@ -268,7 +281,7 @@ module Kernel
 				puts horz * (drop.relative_id.to_s.length + 2)
 
 			else
-				puts " #{color(drop.author, :name)}#{" #{vert} #{color(drop.title, :title)}" if drop.title}"
+				puts " #{color_author(drop.author)}#{" #{vert} #{color(drop.title, :title)}" if drop.title}"
 				puts horz * STDIN.cols
 			end
 

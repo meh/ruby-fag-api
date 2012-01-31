@@ -17,11 +17,12 @@ name: yourname
 password: thisisapassword
 
 colors:
-  separator: black.bold
-  name:      blue
-  tag:       red
-  id:        white.bold
-  quote:     green
+  separator:    black.bold
+  registered:   blue.bold
+  unregistered: blue
+  tag:          red
+  id:           white.bold
+  quote:        green
   text:
   title:
 ```
