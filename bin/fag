@@ -7,83 +7,99 @@ require 'stty'
 require 'yaml'
 require 'fag'
 
-options = {}
+$options = {}
 
 OptionParser.new do |o|
-	options[:config] = File.expand_path('~/.fagrc')
-	options[:show]   = :home
+	$options[:config] = File.expand_path('~/.fagrc')
+	$options[:show]   = :home
+
+	$options[:color] = {
+		separator: 'black.bold',
+		name:      'blue',
+		tag:       'red',
+		id:        'white.bold',
+		text:      '',
+		title:     '',
+		quote:     'green'
+	}
 
 	o.on '-C', '--config PATH', 'the configuration file to use' do |value|
-		options[:config] = File.expand_path(value)
+		$options[:config] = File.expand_path(value)
 	end
 
 	o.on '-U', '--url URL', 'the URL to the zdreN backend' do |value|
-		options[:url] = value
+		$options[:url] = value
 	end
 
 	o.on '-n', '--name NAME', 'the username to log in with' do |value|
-		options[:name] = value
+		$options[:name] = value
 	end
 
 	o.on '-p', '--password PASSWORD', 'the password to log in with' do |value|
-		options[:password] = value
+		$options[:password] = value
 	end
 
 	o.on '-r', '--register', 'use passed NAME and PASSWORD to signup' do
-		options[:register] = true
+		$options[:register] = true
 	end
 
 	o.on '-b', '--bare', 'output without giggles' do
-		options[:bare] = true
+		$options[:bare] = true
 	end
 
 	o.on '-d', '--delete WHAT', 'flow id to delete' do |value|
 		whole, type, id = value.match(/^(?:(.*?):)?(\d+)$/).to_a
 
-		options[:delete]    = type ? type.downcase.to_sym : :flow
-		options[:delete_id] = id.to_i
+		$options[:delete]    = type ? type.downcase.to_sym : :flow
+		$options[:delete_id] = id.to_i
 	end
 
 	o.on '-s', '--show WHAT', 'select what flows to show' do |value|
-		options[:show] = value
+		$options[:show] = value
 	end
 
 	o.on '-N', '--new', 'create a new flow' do
-		options[:new] = true
+		$options[:new] = true
 	end
 
 	o.on '-f', '--for WHAT', 'for what is the drop' do |value|
 		whole, type, id = value.match(/^(?:(.*?):)?(\d+)$/).to_a
 
-		options[:for]    = type ? type.downcase.to_sym : :flow
-		options[:for_id] = id.to_i
+		$options[:for]    = type ? type.downcase.to_sym : :flow
+		$options[:for_id] = id.to_i
 	end
 
 	o.on '-t', '--title TITLE', 'the title' do |value|
-		options[:title] = value
+		$options[:title] = value
 	end
 
 	o.on '-T', '--tags TAGS', Array, 'the tags to use' do |value|
-		options[:tags] = value
+		$options[:tags] = value
 	end
 
 	o.on '-c', '--content CONTENT', 'the content' do |value|
-		options[:content] = value
+		$options[:content] = value
 	end
 end.parse!
 
-$config = YAML.parse_file(options[:config]).transform rescue {}
+$config = YAML.parse_file($options[:config]).transform rescue {}
 
-unless options[:name]
-	options[:name] = $config['name']
+unless $options[:name]
+	$options[:name] = $config['name']
 end
 
-unless options[:password]
-	options[:password] = $config['password']
+unless $options[:password]
+	$options[:password] = $config['password']
 end
 
-unless options[:url]
-	options[:url] = $config['url'] || 'http://fag2.herokuapp.com'
+unless $options[:url]
+	$options[:url] = $config['url'] || 'http://fag2.herokuapp.com'
+end
+
+if $config['color']
+	$config['color'].each {|name, value|
+		$options[:color][name.downcase.to_sym] = value
+	}
 end
 
 module Kernel
@@ -175,6 +191,18 @@ module Kernel
 		!!ENV['NO_COLORS']
 	end
 
+	def color (what, type)
+		result = what.to_s
+
+		return result unless $options[:color][type]
+
+		$options[:color][type].split(?.).each {|name|
+			result = result.__send__ name
+		}
+
+		result
+	end
+
 	def vertical_separator
 		no_colors? ? '|' : '│'
 	end
@@ -192,15 +220,15 @@ module Kernel
 	end
 
 	def horz
-		horizontal_separator.black.bold
+		color(horizontal_separator, :separator)
 	end
 
 	def vert
-		vertical_separator.black.bold
+		color(vertical_separator, :separator)
 	end
 
 	def mid
-		(no_colors? ? "'" : '┴').black.bold
+		color(no_colors? ? "'" : '┴', :separator)
 	end
 
 	def truncate (string, length)
@@ -211,7 +239,7 @@ module Kernel
 		left_length = STDIN.cols - (flow.id.to_s.length + 2 + flow.tags.join(', ').length + 2 + flow.author.to_s.length + 2 + 3)
 
 		unless bare
-			puts " #{flow.id.to_s.white.bold} #{vert} #{flow.tags.map { |t| t.to_s.red }.join ', '} #{vert} #{flow.author.to_s.blue} #{vert} #{truncate(flow.title, left_length)}"
+			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color(flow.author, :name)} #{vert} #{color(truncate(flow.title, left_length), :title)}"
 			print horz * (flow.id.to_s.length + 2) + mid
 			print horz * (flow.tags.join(', ').length + 2) + mid
 			print horz * (flow.author.to_s.length + 2) + mid
@@ -225,17 +253,17 @@ module Kernel
 			if drop.relative_id
 				left_length = STDIN.cols - (1 + drop.author.to_s.length + (drop.title ? 3 + drop.title.length : 0))
 
-				print " #{drop.author.to_s.blue}#{" #{vert} #{drop.title}" if drop.title}"
+				print " #{color(drop.author, :name)}#{" #{vert} #{color(drop.title, :title)}" if drop.title}"
 				print " " * (left_length - drop.relative_id.to_s.length - 3)
-				puts "#{vert} #{drop.relative_id.to_s.white.bold} "
+				puts "#{vert} #{color(drop.relative_id, :id)} "
 
 				print (horz * (STDIN.cols - drop.relative_id.to_s.length - 3)).black.bold
 				print mid
 				puts horz * (drop.relative_id.to_s.length + 2)
 
 			else
-				puts " #{drop.author.to_s.blue}#{" #{vert} #{drop.title}" if drop.title}"
-				puts (horz * STDIN.cols).black.bold
+				puts " #{color(drop.author, :name)}#{" #{vert} #{color(drop.title, :title)}" if drop.title}"
+				puts horz * STDIN.cols
 			end
 
 			puts drop.content.gsub(/^>.*$/) { |rep| rep.green }
@@ -246,16 +274,16 @@ module Kernel
 	end
 end
 
-$session = Fag::Session.new(options[:url])
+$session = Fag::Session.new($options[:url])
 
 unless $session.up?
 	fatal "#{$session.url} seems to be down"
 	exit 99
 end
 
-if options[:register]
+if $options[:register]
 	begin
-		$session.signup(options[:name], options[:password])
+		$session.signup($options[:name], $options[:password])
 
 		info 'registered succesfully'
 	rescue Fag::HTTP::APIException => e
@@ -269,9 +297,9 @@ if options[:register]
 	exit
 end
 
-if options[:password]
+if $options[:password]
 	begin
-		$session.login(options[:name], options[:password])
+		$session.login($options[:name], $options[:password])
 	rescue Fag::HTTP::APIException => e
 		if e.code == 403
 			fatal 'username or password are wrong'
@@ -282,14 +310,14 @@ if options[:password]
 		exit 23
 	end
 else
-	$session.user.name = options[:name] if options[:name]
+	$session.user.name = $options[:name] if $options[:name]
 end
 
-if options[:show] == :home
-	options[:show] = $config['home'] || '*'
+if $options[:show] == :home
+	$options[:show] = $config['home'] || '*'
 end
 
-if !options[:content] && options[:new]
+if !$options[:content] && $options[:new]
 	unless ENV['EDITOR']
 		fatal 'no editor is set, set the env var EDITOR to your favourite editor'
 	end
@@ -298,14 +326,14 @@ if !options[:content] && options[:new]
 	
 	system("$EDITOR #{temp.path}")
 
-	options[:content] = temp.read
+	$options[:content] = temp.read
 end
 
-if options[:new]
-	if options[:for] == :flow
+if $options[:new]
+	if $options[:for] == :flow
 		begin
-			flow = $session.flow(options[:for_id])
-			drop = flow.create_drop options[:content], options[:title]
+			flow = $session.flow($options[:for_id])
+			drop = flow.create_drop $options[:content], $options[:title]
 
 			added "drop #{drop.id.to_s.white.bold}"
 		rescue Fag::HTTP::APIException => e
@@ -313,17 +341,17 @@ if options[:new]
 		end
 	else
 		begin
-			flow = $session.create_flow(options[:title], options[:tags], options[:content])
+			flow = $session.create_flow($options[:title], $options[:tags], $options[:content])
 
 			added "flow #{flow.id.to_s.white.bold}"
 		rescue Fag::HTTP::APIException => e
 			fatal 'unknown error occurred'
 		end
 	end
-elsif options[:delete]
-	if options[:delete] == :drop
+elsif $options[:delete]
+	if $options[:delete] == :drop
 		begin
-			drop = $session.drop(options[:delete_id]).destroy
+			drop = $session.drop($options[:delete_id]).destroy
 			id   = drop.id
 
 			deleted "drop #{id.to_s.white.bold}"
@@ -332,7 +360,7 @@ elsif options[:delete]
 		end
 	else
 		begin
-			flow = $session.flow(options[:delete_id])
+			flow = $session.flow($options[:delete_id])
 
 			if confirm? "delete flow #{flow.id} titled `#{flow.title}` with tags `#{flow.tags.join ', '}` by #{flow.author}"
 				id = flow.id
@@ -348,25 +376,25 @@ elsif options[:delete]
 			end
 		end
 	end
-elsif options[:show]
-	if matches = options[:show].match(/^(\d+)?(?::(\d+))?$/)
+elsif $options[:show]
+	if matches = $options[:show].match(/^(\d+)?(?::(\d+))?$/)
 		begin
 			if matches[1]
 				flow        = $session.flow(matches[1].to_i)
 
-				unless options[:bare]
+				unless $options[:bare]
 					print_flow(flow)
 				end
 
 				if matches[2]
-					print_drop(flow.drops[matches[2].to_i - 1], options[:bare])
+					print_drop(flow.drops[matches[2].to_i - 1], $options[:bare])
 				else
 					flow.drops.each {|drop|
-						print_drop(drop, options[:bare])
+						print_drop(drop, $options[:bare])
 					}
 				end
 			else
-				print_drop($session.drop(matches[2].to_i), options[:bare])
+				print_drop($session.drop(matches[2].to_i), $options[:bare])
 			end
 		rescue Fag::HTTP::APIException => e
 			if e.code == 404
@@ -376,10 +404,10 @@ elsif options[:show]
 			end
 		end
 	else
-		flows = $session.flows(options[:show])
+		flows = $session.flows($options[:show])
 
 		if flows.empty?
-			warn "no flows match #{options[:show].to_s.white.bold}"
+			warn "no flows match #{$options[:show].to_s.white.bold}"
 			
 			exit 1
 		end
