@@ -13,7 +13,7 @@ OptionParser.new do |o|
 	$options[:config] = File.expand_path('~/.fagrc')
 	$options[:show]   = :home
 
-	$options[:color] = {
+	$options[:colors] = {
 		separator: 'black.bold',
 		name:      'blue',
 		tag:       'red',
@@ -96,9 +96,9 @@ unless $options[:url]
 	$options[:url] = $config['url'] || 'http://fag2.herokuapp.com'
 end
 
-if $config['color']
-	$config['color'].each {|name, value|
-		$options[:color][name.downcase.to_sym] = value
+if $config['colors']
+	$config['colors'].each {|name, value|
+		$options[:colors][name.downcase.to_sym] = value
 	}
 end
 
@@ -194,9 +194,9 @@ module Kernel
 	def color (what, type)
 		result = what.to_s
 
-		return result unless $options[:color][type]
+		return result unless $options[:colors][type]
 
-		$options[:color][type].split(?.).each {|name|
+		$options[:colors][type].split(?.).each {|name|
 			result = result.__send__ name
 		}
 
@@ -219,6 +219,12 @@ module Kernel
 		no_colors? ? '-' : '─'
 	end
 
+	def middle_separator (side)
+		if side == :top
+			no_colors? ? "'" : '┴'
+		end
+	end
+
 	def horz
 		color(horizontal_separator, :separator)
 	end
@@ -228,7 +234,7 @@ module Kernel
 	end
 
 	def mid
-		color(no_colors? ? "'" : '┴', :separator)
+		color(middle_separator(:top), :separator)
 	end
 
 	def truncate (string, length)
