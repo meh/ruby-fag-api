@@ -90,6 +90,8 @@ module Fag
 				end
 			end
 		end
+
+		attr_reader :session
 	end
 
 	module Fetchable

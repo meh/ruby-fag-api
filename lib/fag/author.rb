@@ -31,6 +31,7 @@ class Author
 end
 
 class User < Author
+	singleton_memoize
 	def self.from_json (data, session = nil)
 		User.new(data['id'], nil, session)
 	end

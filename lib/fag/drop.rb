@@ -50,7 +50,7 @@ class Drop
 	}
 
 	def fetch (data = nil)
-		(data || @session.get("/drop/#{id}")).tap {|o|
+		(data || @session.get("/drops/#{id}")).tap {|o|
 			@title  = o['title']
 			@author = Author.from_json(o['author'], @session)
 
@@ -59,6 +59,42 @@ class Drop
 			@created_at = DateTime.parse(o['created_at'])
 			@updated_at = DateTime.parse(o['updated_at'])
 		}
+	end
+end
+
+class Drops < Array
+	attr_reader :flow
+
+	def initialize (flow, data)
+		@flow = flow
+
+		data.each_with_index {|data, index|
+			self << if data.is_a?(Integer)
+				@to_fetch = true
+
+				Drop.new(data, flow.session)
+			else
+				Drop.from_json(data, flow.session)
+			end.tap {|drop|
+				drop.relative_id = index + 1
+			}
+		}
+	end
+
+	def fetch!
+		return self unless @to_fetch
+
+		clear
+
+		flow.session.get("/flows/#{flow.id}/drops").each_with_index {|data, index|
+			self << Drop.from_json(data, flow.session).tap {|drop|
+				drop.relative_id = index + 1
+			}
+		}
+
+		@to_fetch = false
+
+		self
 	end
 end
 

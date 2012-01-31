@@ -403,7 +403,7 @@ elsif $options[:show]
 	if matches = $options[:show].match(/^(\d+)?(?::(\d+))?$/)
 		begin
 			if matches[1]
-				flow        = $session.flow(matches[1].to_i)
+				flow = $session.flow(matches[1].to_i)
 
 				unless $options[:bare]
 					print_flow(flow)
@@ -412,7 +412,7 @@ elsif $options[:show]
 				if matches[2]
 					print_drop(flow.drops[matches[2].to_i - 1], $options[:bare])
 				else
-					flow.drops.each {|drop|
+					flow.drops.fetch!.each {|drop|
 						print_drop(drop, $options[:bare])
 					}
 				end
