@@ -196,6 +196,10 @@ module Kernel
 		end
 	end
 
+	def author_name (author)
+		author.to_s.inspect[1 .. -2]
+	end
+
 	def no_colors?
 		!!ENV['NO_COLORS']
 	end
@@ -213,7 +217,7 @@ module Kernel
 	end
 
 	def color_author (author)
-		color(author,author.is_a?(Fag::User) ? :registered : :unregistered)
+		color(author_name(author), author.is_a?(Fag::User) ? :registered : :unregistered)
 	end
 
 	def vertical_separator
@@ -261,7 +265,7 @@ module Kernel
 			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(truncate(flow.title, left_length), :title)}"
 			print horz * (flow.id.to_s.length + 2) + mid
 			print horz * (flow.tags.join(', ').length + 2) + mid
-			print horz * (flow.author.to_s.length + 2) + mid
+			print horz * (author_name(flow.author).length + 2) + mid
 			print horz * left_length
 			puts "\n\n"
 		end
@@ -270,7 +274,7 @@ module Kernel
 	def print_drop (drop, bare = false)
 		unless bare
 			if drop.relative_id
-				left_length = STDIN.cols - (1 + drop.author.to_s.length + (drop.title ? 3 + drop.title.length : 0))
+				left_length = STDIN.cols - (1 + author_name(drop.author).length + (drop.title ? 3 + drop.title.length : 0))
 
 				print " #{color_author(drop.author)}#{" #{vert} #{color(drop.title, :title)}" if drop.title}"
 				print " " * (left_length - drop.relative_id.to_s.length - 3)
@@ -381,7 +385,7 @@ elsif $options[:delete]
 		begin
 			flow = $session.flow($options[:delete_id])
 
-			if confirm? "delete flow #{flow.id} titled `#{flow.title}` with tags `#{flow.tags.join ', '}` by #{flow.author}"
+			if confirm? "delete flow #{color(flow.id, :id)} titled #{color(flow.title, :title)} with tags #{flow.tags.map { |t| color(t, :tag) }.join ', '} by #{color_author(flow.author)}"
 				id = flow.id
 				flow.destroy
 
@@ -432,7 +436,7 @@ elsif $options[:show]
 		end
 
 		flows.each {|flow|
-			puts " #{flow.id.to_s.white.bold} #{vert} #{flow.tags.map { |t| t.to_s.red }.join ', '} #{vert} #{flow.author.to_s.blue} #{vert} #{flow.title}"
+			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(flow.title, :title)}"
 		}
 	end
 end
