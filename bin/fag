@@ -196,8 +196,8 @@ module Kernel
 		end
 	end
 
-	def author_name (author)
-		author.to_s.inspect[1 .. -2]
+	def escape (what)
+		what.to_s.gsub(/[\c\f\e\b\a]/) { |r| r.inspect[1 .. -2] }
 	end
 
 	def no_colors?
@@ -217,7 +217,7 @@ module Kernel
 	end
 
 	def color_author (author)
-		color(author_name(author), author.is_a?(Fag::User) ? :registered : :unregistered)
+		color(escape(author), author.is_a?(Fag::User) ? :registered : :unregistered)
 	end
 
 	def vertical_separator
@@ -262,10 +262,10 @@ module Kernel
 		left_length = STDIN.cols - (flow.id.to_s.length + 2 + flow.tags.join(', ').length + 2 + flow.author.to_s.length + 2 + 3)
 
 		unless bare
-			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(truncate(flow.title, left_length), :title)}"
+			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(truncate(escape(flow.title), left_length), :title)}"
 			print horz * (flow.id.to_s.length + 2) + mid
 			print horz * (flow.tags.join(', ').length + 2) + mid
-			print horz * (author_name(flow.author).length + 2) + mid
+			print horz * (escape(flow.author).length + 2) + mid
 			print horz * left_length
 			puts "\n\n"
 		end
@@ -274,9 +274,9 @@ module Kernel
 	def print_drop (drop, bare = false)
 		unless bare
 			if drop.relative_id
-				left_length = STDIN.cols - (1 + author_name(drop.author).length + (drop.title ? 3 + drop.title.length : 0))
+				left_length = STDIN.cols - (1 + escape(drop.author).length + (drop.title ? 3 + escape(drop.title).length : 0))
 
-				print " #{color_author(drop.author)}#{" #{vert} #{color(drop.title, :title)}" if drop.title}"
+				print " #{color_author(drop.author)}#{" #{vert} #{color(escape(drop.title), :title)}" if drop.title}"
 				print " " * (left_length - drop.relative_id.to_s.length - 3)
 				puts "#{vert} #{color(drop.relative_id, :id)} "
 
@@ -285,14 +285,14 @@ module Kernel
 				puts horz * (drop.relative_id.to_s.length + 2)
 
 			else
-				puts " #{color_author(drop.author)}#{" #{vert} #{color(drop.title, :title)}" if drop.title}"
+				puts " #{color_author(drop.author)}#{" #{vert} #{color(escape(drop.title), :title)}" if drop.title}"
 				puts horz * STDIN.cols
 			end
 
-			puts drop.content.gsub(/^>.*$/) { |rep| rep.green }
+			puts escape(drop.content).gsub(/^>.*$/) { |rep| rep.green }
 			puts ""
 		else
-			puts drop.content
+			puts escape(drop.content)
 		end
 	end
 end
@@ -385,7 +385,7 @@ elsif $options[:delete]
 		begin
 			flow = $session.flow($options[:delete_id])
 
-			if confirm? "delete flow #{color(flow.id, :id)} titled #{color(flow.title, :title)} with tags #{flow.tags.map { |t| color(t, :tag) }.join ', '} by #{color_author(flow.author)}"
+			if confirm? "delete flow #{color(flow.id, :id)} titled #{color(escape(flow.title), :title)} with tags #{flow.tags.map { |t| color(t, :tag) }.join ', '} by #{color_author(flow.author)}"
 				id = flow.id
 				flow.destroy
 
@@ -436,7 +436,7 @@ elsif $options[:show]
 		end
 
 		flows.each {|flow|
-			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(flow.title, :title)}"
+			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(escape(flow.title), :title)}"
 		}
 	end
 end
