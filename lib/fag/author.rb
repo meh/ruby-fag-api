@@ -50,6 +50,30 @@ class User < Author
 		@id = id
 	end
 
+	session_define :flows do |s, range = nil|
+		if range.nil?
+			get "/users/#{id}/flows"
+		elsif range.end == -1
+			get "/users/#{id}/flows?offset=#{range.begin}"
+		elsif range.begin == -1
+			get "/users/#{id}/flows?limit=#{range.end}"
+		else
+			get "/users/#{id}/flows?offset=#{range.begin}&limit=#{range.to_a.length}"
+		end.map { |f| Flow.from_json(f, s) }
+	end
+
+	session_define :drops do |s, range = nil|
+		if range.nil?
+			get "/users/#{id}/drops"
+		elsif range.end == -1
+			get "/users/#{id}/drops?offset=#{range.begin}"
+		elsif range.begin == -1
+			get "/users/#{id}/drops?limit=#{range.end}"
+		else
+			get "/users/#{id}/drops?offset=#{range.begin}&limit=#{range.to_a.length}"
+		end.map { |d| Drop.from_json(d, s) }
+	end
+
 	session_define :powers do |s|
 		s.get "/users/#{id}/powers"
 	end

@@ -197,7 +197,7 @@ module Kernel
 	end
 
 	def escape (what)
-		what.to_s.gsub(/[\c\f\e\b\a]/) { |r| r.inspect[1 .. -2] }
+		what.to_s.gsub(/[\f\e\b\a]/) { |r| r.inspect[1 .. -2] }
 	end
 
 	def no_colors?
