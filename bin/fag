@@ -40,6 +40,10 @@ OptionParser.new do |o|
 		$options[:password] = value
 	end
 
+	o.on '-P', '--new-password PASSWORD', 'the new password' do |value|
+		$options[:new_password] = value
+	end
+
 	o.on '-r', '--register', 'use passed NAME and PASSWORD to signup' do
 		$options[:register] = true
 	end
@@ -334,6 +338,18 @@ if $options[:password]
 	end
 else
 	$session.user.name = $options[:name] if $options[:name]
+end
+
+if $options[:new_password]
+	begin
+		$session.user.change_password($options[:new_password])
+
+		info 'changed password successfully'
+	rescue Fag::HTTP::APIException => e
+		fatal 'unknown error occurred'
+	end
+
+	exit
 end
 
 if $options[:show] == :home

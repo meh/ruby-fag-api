@@ -87,7 +87,7 @@ class User < Author
 	end
 
 	session_define :change_password do |s, password|
-		s.post "/users/#{id}/change/password", password: password
+		s.put "/users/#{id}/password", password: password
 	end
 end
 
