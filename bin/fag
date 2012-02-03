@@ -390,8 +390,10 @@ if $options[:new]
 elsif $options[:delete]
 	if $options[:delete] == :drop
 		begin
-			drop = $session.drop($options[:delete_id]).destroy
+			drop = $session.drop($options[:delete_id])
 			id   = drop.id
+
+			drop.destroy
 
 			deleted "drop #{id.to_s.white.bold}"
 		rescue Fag::HTTP::APIException => e
@@ -403,6 +405,7 @@ elsif $options[:delete]
 
 			if confirm? "delete flow #{color(flow.id, :id)} titled #{color(escape(flow.title), :title)} with tags #{flow.tags.map { |t| color(t, :tag) }.join ', '} by #{color_author(flow.author)}"
 				id = flow.id
+
 				flow.destroy
 
 				deleted "flow #{id.to_s.white.bold}"
