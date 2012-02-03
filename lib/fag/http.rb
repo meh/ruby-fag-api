@@ -68,7 +68,9 @@ class HTTP
 			req = Net::HTTP.const_get(method.capitalize).new(path)
 
 			if %w[POST PUT DELETE].member? method.to_s
-				req.set_form_data _prepare_data(data)
+				req['Content-Type'] = 'application/json'
+
+				req.body = _prepare_data(data).to_json
 			end
 
 			_prepare_headers(headers).each {|name, value|

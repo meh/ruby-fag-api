@@ -68,7 +68,7 @@ class Session < HTTP
 	end
 
 	def create_flow (title, tags, content)
-		Flow.from_json(post('/flows', title: title, tags: tags.to_json, content: content, name: user.name), self)
+		Flow.from_json(post('/flows', title: title, tags: tags, content: content, name: user.name), self)
 	end
 
 	def drop (id)
