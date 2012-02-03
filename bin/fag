@@ -214,7 +214,11 @@ module Kernel
 		return result unless $options[:colors][type]
 
 		$options[:colors][type].split(?.).each {|name|
-			result = result.__send__ name
+			if name =~ /(.*?)\((.*?)\)/
+				result = result.__send__ $1, $2.to_i
+			else
+				result = result.__send__ name
+			end
 		}
 
 		result
@@ -293,7 +297,7 @@ module Kernel
 				puts horz * STDIN.cols
 			end
 
-			puts escape(drop.content).gsub(/^>.*$/) { |rep| rep.green }
+			puts escape(drop.content).gsub(/^>.*$/) { |r| color(r, :quote) }
 			puts ""
 		else
 			puts escape(drop.content)
