@@ -26,3 +26,19 @@ colors:
   text:
   title:
 ```
+
+### Themes
+
+"matrix" like theme:
+
+```yaml
+colors:
+  separator:    black.bold
+  registered:   green.underline
+  unregistered: green
+  tag:          green
+  id:           green
+  quote:
+  text:
+  title:
+```
