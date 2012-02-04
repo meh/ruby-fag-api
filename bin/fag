@@ -19,8 +19,8 @@ OptionParser.new do |o|
 		unregistered: 'blue',
 		tag:          'red',
 		id:           'white.bold',
-		text:         '',
 		title:        '',
+		content:      '',
 		quote:        'green'
 	}
 
@@ -204,12 +204,16 @@ module Kernel
 		what.to_s.gsub(/[\f\e\b\a]/) { |r| r.inspect[1 .. -2] }
 	end
 
+	def length (what)
+		escape(what.to_s).length
+	end
+
 	def no_colors?
 		!!ENV['NO_COLORS']
 	end
 
 	def color (what, type)
-		result = what.to_s
+		result = escape(what.to_s)
 
 		return result unless $options[:colors][type]
 
@@ -225,7 +229,7 @@ module Kernel
 	end
 
 	def color_author (author)
-		color(escape(author), author.is_a?(Fag::User) ? :registered : :unregistered)
+		color(author, author.is_a?(Fag::User) ? :registered : :unregistered)
 	end
 
 	def vertical_separator
@@ -267,13 +271,13 @@ module Kernel
 	end
 
 	def print_flow (flow, bare = false)
-		left_length = STDIN.cols - (flow.id.to_s.length + 2 + flow.tags.join(', ').length + 2 + flow.author.to_s.length + 2 + 3)
+		left_length = STDIN.cols - (length(flow.id) + 2 + length(flow.tags.join(', ')) + 2 + length(flow.author) + 2 + 3)
 
 		unless bare
-			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(truncate(escape(flow.title), left_length), :title)}"
-			print horz * (flow.id.to_s.length + 2) + mid
-			print horz * (flow.tags.join(', ').length + 2) + mid
-			print horz * (escape(flow.author).length + 2) + mid
+			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(truncate(flow.title, left_length), :title)}"
+			print horz * (length(flow.id) + 2) + mid
+			print horz * (length(flow.tags.join(', ')) + 2) + mid
+			print horz * (length(flow.author) + 2) + mid
 			print horz * left_length
 			puts "\n\n"
 		end
@@ -282,22 +286,22 @@ module Kernel
 	def print_drop (drop, bare = false)
 		unless bare
 			if drop.relative_id
-				left_length = STDIN.cols - (1 + escape(drop.author).length + (drop.title ? 3 + escape(drop.title).length : 0))
+				left_length = STDIN.cols - (1 + length(drop.author) + (drop.title ? 3 + length(drop.title) : 0))
 
-				print " #{color_author(drop.author)}#{" #{vert} #{color(escape(drop.title), :title)}" if drop.title}"
-				print " " * (left_length - drop.relative_id.to_s.length - 3)
+				print " #{color_author(drop.author)}#{" #{vert} #{color(drop.title, :title)}" if drop.title}"
+				print " " * (left_length - length(drop.relative_id) - 3)
 				puts "#{vert} #{color(drop.relative_id, :id)} "
 
-				print (horz * (STDIN.cols - drop.relative_id.to_s.length - 3)).black.bold
+				print (horz * (STDIN.cols - length(drop.relative_id) - 3)).black.bold
 				print mid
-				puts horz * (drop.relative_id.to_s.length + 2)
+				puts horz * (length(drop.relative_id) + 2)
 
 			else
-				puts " #{color_author(drop.author)}#{" #{vert} #{color(escape(drop.title), :title)}" if drop.title}"
+				puts " #{color_author(drop.author)}#{" #{vert} #{color(drop.title, :title)}" if drop.title}"
 				puts horz * STDIN.cols
 			end
 
-			puts escape(drop.content).gsub(/^>.*$/) { |r| color(r, :quote) }
+			puts color(drop.content, :content).gsub(/^>.*$/) { |r| color(r, :quote) }
 			puts ""
 		else
 			puts escape(drop.content)
@@ -407,7 +411,7 @@ elsif $options[:delete]
 		begin
 			flow = $session.flow($options[:delete_id])
 
-			if confirm? "delete flow #{color(flow.id, :id)} titled #{color(escape(flow.title), :title)} with tags #{flow.tags.map { |t| color(t, :tag) }.join ', '} by #{color_author(flow.author)}"
+			if confirm? "delete flow #{color(flow.id, :id)} titled #{color(flow.title, :title)} with tags #{flow.tags.map { |t| color(t, :tag) }.join ', '} by #{color_author(flow.author)}"
 				id = flow.id
 
 				flow.destroy
@@ -459,7 +463,7 @@ elsif $options[:show]
 		end
 
 		flows.each {|flow|
-			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(escape(flow.title), :title)}"
+			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(flow.title, :title)}"
 		}
 	end
 end

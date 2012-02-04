@@ -23,7 +23,7 @@ colors:
   tag:          red
   id:           white.bold
   quote:        green
-  text:
+  content:
   title:
 ```
 
@@ -39,6 +39,6 @@ colors:
   tag:          green
   id:           green
   quote:
-  text:
+  content:
   title:
 ```
