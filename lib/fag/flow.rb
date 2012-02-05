@@ -65,7 +65,7 @@ class Flow
 			@tags   = Tags.from_json(o['tags'], @session)
 			@author = Author.from_json(o['author'], @session)
 
-			@drops = Drops.new(self, o['drops'])
+			@drops = Drops.new(o['drops'], @session)
 
 			@created_at = DateTime.parse(o['created_at'])
 			@updated_at = DateTime.parse(o['updated_at'])

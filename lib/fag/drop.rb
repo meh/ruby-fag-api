@@ -63,31 +63,33 @@ class Drop
 end
 
 class Drops < Array
-	attr_reader :flow
+	include Sessioned
 
-	def initialize (flow, data)
-		@flow = flow
+	def initialize (data, session)
+		@session = session
 
 		data.each_with_index {|data, index|
 			self << if data.is_a?(Integer)
 				@to_fetch = true
 
-				Drop.new(data, flow.session)
+				Drop.new(data, session)
 			else
-				Drop.from_json(data, flow.session)
+				Drop.from_json(data, session)
 			end.tap {|drop|
 				drop.relative_id = index + 1
 			}
 		}
 	end
 
-	def fetch!
+	session_define :fetch! do |s|
 		return self unless @to_fetch
+
+		ids = map(&:id)
 
 		clear
 
-		flow.session.get("/flows/#{flow.id}/drops").each_with_index {|data, index|
-			self << Drop.from_json(data, flow.session).tap {|drop|
+		[session.get("/drops/#{ids.join(',')}")].flatten.each_with_index {|data, index|
+			self << Drop.from_json(data, s).tap {|drop|
 				drop.relative_id = index + 1
 			}
 		}
