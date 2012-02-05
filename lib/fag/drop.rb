@@ -85,10 +85,9 @@ class Drops < Array
 		return self unless @to_fetch
 
 		ids = map(&:id)
-
 		clear
 
-		[session.get("/drops/#{ids.join(',')}")].flatten.each_with_index {|data, index|
+		session.get("/drops/#{ids.join(',')}?array").each_with_index {|data, index|
 			self << Drop.from_json(data, s).tap {|drop|
 				drop.relative_id = index + 1
 			}
