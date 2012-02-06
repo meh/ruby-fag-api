@@ -274,10 +274,10 @@ module Kernel
 		left_length = STDIN.cols - (length(flow.id) + 2 + length(flow.tags.join(', ')) + 2 + length(flow.author) + 2 + 3)
 
 		unless bare
-			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(truncate(flow.title, left_length), :title)}"
+			puts " #{color(flow.id, :id)} #{vert} #{color_author(flow.author)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color(truncate(flow.title, left_length), :title)}"
 			print horz * (length(flow.id) + 2) + mid
-			print horz * (length(flow.tags.join(', ')) + 2) + mid
 			print horz * (length(flow.author) + 2) + mid
+			print horz * (length(flow.tags.join(', ')) + 2) + mid
 			print horz * left_length
 			puts "\n\n"
 		end
@@ -462,8 +462,31 @@ elsif $options[:show]
 			exit 1
 		end
 
+		max_id_length     = flows.max { |a, b| a.id <=> b.id }.id.to_s.length
+		max_author_length = length(flows.max { |a, b| length(a.author) <=> length(b.author) }.author)
+		max_tags_length   = flows.max { |a, b| a.tags { |t| escape(t) }.join(', ').length <=> b.tags.map { |t| escape(t) }.join(', ').length }.tags.map { |t| escape(t) }.join(', ').length
+
 		flows.each {|flow|
-			puts " #{color(flow.id, :id)} #{vert} #{flow.tags.map { |t| color(t, :tag) }.join ', '} #{vert} #{color_author(flow.author)} #{vert} #{color(flow.title, :title)}"
+			print ' '
+
+			print ' ' * (max_id_length - flow.id.to_s.length)
+			print color(flow.id, :id)
+
+			print " #{vert} "
+
+			print color_author(flow.author)
+			print ' ' * (max_author_length - length(flow.author))
+
+			print " #{vert} "
+
+			print flow.tags.map { |t| color(t, :tag) }.join ', '
+			print ' ' * (max_tags_length - flow.tags.join(', ').length)
+
+			print " #{vert} "
+
+			print color(flow.title, :title)
+
+			puts
 		}
 	end
 end
