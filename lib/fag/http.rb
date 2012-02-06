@@ -65,12 +65,11 @@ class HTTP
 	def request (method, path, headers = nil, data = nil)
 		path = "/#{version}/#{path}".gsub(%r(//+), '/') if version
 		res  = Net::HTTP.start(@address, @port) {|http|
-			req = Net::HTTP.const_get(method.capitalize).new(path)
+			req = Net::HTTP.const_get(method.capitalize).new(method != :GET ? "#{path}?csrf=#{CGI.escape(csrf)}" : path)
 
-			if %w[POST PUT DELETE].member? method.to_s
+			if data
 				req['Content-Type'] = 'application/json'
-
-				req.body = _prepare_data(data).to_json
+				req.body = data.to_json
 			end
 
 			_prepare_headers(headers).each {|name, value|
@@ -119,12 +118,6 @@ class HTTP
 	end
 
 private
-	def _prepare_data (data)
-		(data || {}).merge(
-			_csrf: csrf
-		)
-	end
-
 	def _prepare_headers (headers)
 		(headers || {}).merge(
 			'User-Agent' => "ruby-fag-api/#{Fag::VERSION}",
