@@ -307,6 +307,14 @@ module Kernel
 			puts escape(drop.content)
 		end
 	end
+
+	def print_error (error)
+		if error.is_a?(Fag::HTTP::APIException)
+			fatal error.body.downcase
+		else
+			fatal error.message
+		end
+	end
 end
 
 $session = Fag::Session.new($options[:url])
@@ -317,17 +325,9 @@ unless $session.up?
 end
 
 if $options[:register]
-	begin
-		$session.signup($options[:name], $options[:password])
+	$session.signup($options[:name], $options[:password])
 
-		info 'registered succesfully'
-	rescue Fag::HTTP::APIException => e
-		if e.code == 302
-			fatal 'username already taken'
-		else
-			fatal 'unknown error occurred'
-		end
-	end
+	info 'registered succesfully'
 
 	exit
 end
@@ -354,7 +354,7 @@ if $options[:new_password]
 
 		info 'changed password successfully'
 	rescue Fag::HTTP::APIException => e
-		fatal 'unknown error occurred'
+		print_error e
 	end
 
 	exit
@@ -376,82 +376,56 @@ if !$options[:content] && $options[:new]
 	$options[:content] = temp.read
 end
 
+begin
+
 if $options[:new]
 	if $options[:for] == :flow
-		begin
-			flow = $session.flow($options[:for_id])
-			drop = flow.create_drop $options[:content], $options[:title]
+		flow = $session.flow($options[:for_id])
+		drop = flow.create_drop $options[:content], $options[:title]
 
-			added "drop #{drop.id.to_s.white.bold}"
-		rescue Fag::HTTP::APIException => e
-			fatal 'unknown error occurred'
-		end
+		added "drop #{drop.id.to_s.white.bold}"
 	else
-		begin
-			flow = $session.create_flow($options[:title], $options[:tags], $options[:content])
+		flow = $session.create_flow($options[:title], $options[:tags], $options[:content])
 
-			added "flow #{flow.id.to_s.white.bold}"
-		rescue Fag::HTTP::APIException => e
-			fatal 'unknown error occurred'
-		end
+		added "flow #{flow.id.to_s.white.bold}"
 	end
 elsif $options[:delete]
 	if $options[:delete] == :drop
-		begin
-			drop = $session.drop($options[:delete_id])
-			id   = drop.id
+		drop = $session.drop($options[:delete_id])
+		id   = drop.id
 
-			drop.destroy
+		drop.destroy
 
-			deleted "drop #{id.to_s.white.bold}"
-		rescue Fag::HTTP::APIException => e
-			fatal 'unknown error occurred'
-		end
+		deleted "drop #{id.to_s.white.bold}"
 	else
-		begin
-			flow = $session.flow($options[:delete_id])
+		flow = $session.flow($options[:delete_id])
 
-			if confirm? "delete flow #{color(flow.id, :id)} titled #{color(flow.title, :title)} with tags #{flow.tags.map { |t| color(t, :tag) }.join ', '} by #{color_author(flow.author)}"
-				id = flow.id
+		if confirm? "delete flow #{color(flow.id, :id)} titled #{color(flow.title, :title)} with tags #{flow.tags.map { |t| color(t, :tag) }.join ', '} by #{color_author(flow.author)}"
+			id = flow.id
 
-				flow.destroy
+			flow.destroy
 
-				deleted "flow #{id.to_s.white.bold}"
-			end
-		rescue Fag::HTTP::APIException => e
-			if e.code == 404
-				fatal 'flow not found'
-			else
-				fatal 'unknown error occurred'
-			end
+			deleted "flow #{id.to_s.white.bold}"
 		end
 	end
 elsif $options[:show]
 	if matches = $options[:show].match(/^(\d+)?(?::(\d+))?$/)
-		begin
-			if matches[1]
-				flow = $session.flow(matches[1].to_i)
+		if matches[1]
+			flow = $session.flow(matches[1].to_i)
 
-				unless $options[:bare]
-					print_flow(flow)
-				end
+			unless $options[:bare]
+				print_flow(flow)
+			end
 
-				if matches[2]
-					print_drop(flow.drops[matches[2].to_i - 1], $options[:bare])
-				else
-					flow.drops.fetch!.each {|drop|
-						print_drop(drop, $options[:bare])
-					}
-				end
+			if matches[2]
+				print_drop(flow.drops[matches[2].to_i - 1], $options[:bare])
 			else
-				print_drop($session.drop(matches[2].to_i), $options[:bare])
+				flow.drops.fetch!.each {|drop|
+					print_drop(drop, $options[:bare])
+				}
 			end
-		rescue Fag::HTTP::APIException => e
-			if e.code == 404
-				fatal 'flow not found'
-			else
-				fatal 'unknown error'
-			end
+		else
+			print_drop($session.drop(matches[2].to_i), $options[:bare])
 		end
 	else
 		flows = $session.flows($options[:show])
@@ -489,4 +463,8 @@ elsif $options[:show]
 			puts
 		}
 	end
+end
+
+rescue Exception => e
+	print_error e
 end
