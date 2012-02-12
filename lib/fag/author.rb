@@ -37,6 +37,7 @@ class User < Author
 	end
 
 	include Sessioned
+	include WithMetadata
 
 	attr_reader :id
 

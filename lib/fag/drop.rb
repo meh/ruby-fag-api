@@ -17,6 +17,7 @@ class Drop
 
 	include Fetchable
 	include Sessioned
+	include WithMetadata
 
 	attr_reader   :id
 	attr_accessor :relative_id

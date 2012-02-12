@@ -20,6 +20,7 @@ class Flow
 
 	include Fetchable
 	include Sessioned
+	include WithMetadata
 
 	attr_reader :id
 

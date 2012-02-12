@@ -57,7 +57,7 @@ OptionParser.new do |o|
 	end
 
 	o.on '-d', '--delete WHAT', 'flow id to delete' do |value|
-		whole, type, id = value.match(/^(?:(.*?):)?(\d+)$/).to_a
+		whole, type, id = value.match(/^(?:(.*?):)?([^:]+)$/).to_a
 
 		$options[:delete]    = type ? type.downcase.to_sym : :flow
 		$options[:delete_id] = id.to_i
@@ -67,12 +67,19 @@ OptionParser.new do |o|
 		$options[:show] = value
 	end
 
+	o.on '-m', '--metadata WHAT', 'show metadata of the given item' do |value|
+		whole, type, id = value.match(/^(?:(.*?):)?([^:]+)$/).to_a
+
+		$options[:metadata]    = type ? type.downcase.to_sym : :flow
+		$options[:metadata_id] = id.to_i
+	end
+
 	o.on '-N', '--new', 'create a new flow' do
 		$options[:new] = true
 	end
 
 	o.on '-f', '--for WHAT', 'for what is the drop' do |value|
-		whole, type, id = value.match(/^(?:(.*?):)?(\d+)$/).to_a
+		whole, type, id = value.match(/^(?:(.*?):)?([^:]+)$/).to_a
 
 		$options[:for]    = type ? type.downcase.to_sym : :flow
 		$options[:for_id] = id.to_i
@@ -408,6 +415,18 @@ elsif $options[:delete]
 			deleted "flow #{id.to_s.white.bold}"
 		end
 	end
+elsif $options[:metadata]
+	require 'ap'
+
+	metadata = if $options[:metadata] == :drop
+		$session.drop($options[:metadata_id]).metadata
+	elsif $options[:metadata] == :tag
+		$session.drop($options[:metadata_id]).metadata
+	else
+		$session.flow($options[:metadata_id]).metadata
+	end
+
+	ap metadata
 elsif $options[:show]
 	if matches = $options[:show].match(/^(\d+)?(?::(\d+))?$/)
 		if matches[1]

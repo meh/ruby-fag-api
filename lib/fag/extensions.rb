@@ -89,4 +89,14 @@ module Fag
 			raise NotImplementedError, 'the specialized #fetch has not been implemented'
 		end
 	end
+
+	module WithMetadata
+		def self.included (klass)
+			klass.instance_eval {
+				session_define :metadata do |s|
+					Metadata.new(self).tap { |m| m.load }
+				end
+			}
+		end
+	end
 end

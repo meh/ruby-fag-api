@@ -15,8 +15,6 @@ require 'fag/flow'
 module Fag
 
 class Session < HTTP
-	attr_reader :user
-
 	def initialize (*)
 		super
 
@@ -51,8 +49,20 @@ class Session < HTTP
 		get '/auth'
 	end
 
+	def user (id = nil)
+		id ? User.from_json(get("/users/#{id}"), self) : @user
+	end
+
 	def flow (id)
 		Flow.from_json(get("/flows/#{id}"), self)
+	end
+
+	def drop (id)
+		Drop.from_json(get("/drops/#{id}"), self)
+	end
+
+	def tag (id)
+		Tag.from_json(get("/tags/#{id}"), self)
 	end
 
 	def flows (expression, range = nil)
@@ -69,10 +79,6 @@ class Session < HTTP
 
 	def create_flow (title, tags, content)
 		Flow.from_json(post('/flows', title: title, tags: tags, content: content, name: user.name), self)
-	end
-
-	def drop (id)
-		Drop.from_json(get("/drops/#{id}"), self)
 	end
 end
 

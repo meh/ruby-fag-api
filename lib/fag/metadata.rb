@@ -10,13 +10,24 @@
 
 module Fag
 
-class Tags < Array
-	def self.from_json (data, session = nil)
-		Tags.new.concat(JSON.parse(data))
+class Metadata < Hash
+	attr_reader :owner
+
+	def initialize (owner)
+		@owner = owner
 	end
 
-	def to_s
-		join ', '
+	def save
+		@owner.session.put url, data: self
+	end
+
+	def load
+		replace @owner.session.get(url)[:data]
+	end
+
+private
+	def url
+		"/metadata/#{owner.class.name[/[^:]*$/].downcase}/#{owner.id}"
 	end
 end
 
