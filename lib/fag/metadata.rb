@@ -22,7 +22,7 @@ class Metadata < Hash
 	end
 
 	def load
-		replace @owner.session.get(url)[:data]
+		replace @owner.session.get(url)
 	end
 
 private

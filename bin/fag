@@ -319,7 +319,14 @@ module Kernel
 		if error.is_a?(Fag::HTTP::APIException)
 			fatal error.body.downcase
 		else
-			fatal error.message
+			if ENV['FAG_DEBUG']
+				print "From: #{caller[0, 1].join "\n"}\n"
+				print "#{error.class}: #{error.message}\n"
+				print error.backtrace.to_a.join "\n"
+				print "\n\n"
+			else
+				fatal error.message
+			end
 		end
 	end
 end
@@ -421,7 +428,7 @@ elsif $options[:metadata]
 	metadata = if $options[:metadata] == :drop
 		$session.drop($options[:metadata_id]).metadata
 	elsif $options[:metadata] == :tag
-		$session.drop($options[:metadata_id]).metadata
+		$session.tag($options[:metadata_id]).metadata
 	else
 		$session.flow($options[:metadata_id]).metadata
 	end

@@ -8,7 +8,7 @@
 #  0. You just DO WHAT THE FUCK YOU WANT TO.
 #++
 
-require 'fag/tags'
+require 'fag/tag'
 require 'fag/drop'
 
 module Fag

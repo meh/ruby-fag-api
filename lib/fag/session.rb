@@ -9,6 +9,7 @@
 #++
 
 require 'fag/http'
+require 'fag/metadata'
 require 'fag/author'
 require 'fag/flow'
 
